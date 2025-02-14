@@ -1,0 +1,205 @@
+// schema.prisma
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+model Admin {
+  id             Int            @id @default(autoincrement())
+  email          String         @unique
+  password       String
+  role           String          @default("ADMIN")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Salesperson {
+  id             Int            @id @default(autoincrement())
+  email          String         @unique
+  password       String
+  name           String
+  phoneNumber    String         @unique
+  employeeId     String         @unique
+  pan            String
+  address        String         
+  role           String          @default("SALESPERSON")
+  shopkeepers    Shopkeeper[]   @relation("SalespersonShopkeepers")
+  orders         Order[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Distributor {
+  id             Int            @id @default(autoincrement())
+  name           String
+  email          String         @unique
+  password       String
+  role           String         @default("DISTRIBUTOR") 
+  phoneNumber    String         @unique
+  gstNumber      String?
+  pan            String?
+  imageUrl       String?
+  address        String
+  orders         Order[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Category {
+  id             Int            @id @default(autoincrement())
+  name           String         @unique
+  products       Product[]      // One-to-many relationship with products
+}
+
+model Product {
+  id             Int            @id @default(autoincrement())
+  categoryId     Int             // Foreign key for the Category
+  name           String
+  distributorPrice Float
+  retailerPrice  Float
+  mrp            Float
+  skuId          String         @unique
+  inventoryCount Int
+  imageUrl       String?
+  variants       ProductVariant[] 
+  orders         OrderItem[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  category       Category        @relation(fields: [categoryId], references: [id]) // Foreign key to Category
+}
+
+model ProductVariant {
+  id             Int            @id @default(autoincrement())
+  productId      Int
+  variantName    String         // Name for the variant (e.g., "Size", "Color")
+  variantValue   String         // Specific value (e.g., "Large", "Red")
+  price          Float          // Price of the specific variant
+  stockQuantity  Int            // Quantity available for this variant
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  product        Product         @relation(fields: [productId], references: [id]) // Foreign key to Product
+}
+
+model Shopkeeper {
+  id             Int            @id @default(autoincrement())
+  name           String
+  ownerName      String
+  contactNumber  String         @unique
+  email          String?
+  gpsLocation    String?
+  imageUrl       String?
+  videoUrl       String?
+  preferredDeliverySlot String?
+  salespersonId  Int?           // Nullable in case no salesperson is assigned
+  salesperson    Salesperson?   @relation("SalespersonShopkeepers", fields: [salespersonId], references: [id])
+  orders         Order[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Order {
+  id             Int            @id @default(autoincrement())
+  shopkeeperId   Int
+  distributorId  Int
+  salespersonId  Int
+  orderDate      DateTime       @default(now())
+  deliveryDate   DateTime
+  deliverySlot   String
+  paymentTerm    PaymentTerm
+  orderNote      String?
+  totalAmount    Float
+  status         OrderStatus     @default(PENDING)
+  confirmationPhotoUrl String?
+  partialPayment PartialPayment? // New relation
+  items          OrderItem[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  shopkeeper     Shopkeeper      @relation(fields: [shopkeeperId], references: [id])
+  distributor    Distributor     @relation(fields: [distributorId], references: [id])
+  salesperson     Salesperson     @relation(fields: [salespersonId], references: [id])
+}
+model PartialPayment {
+  id                Int      @id @default(autoincrement())
+  orderId          Int      @unique
+  initialAmount    Float
+  remainingAmount  Float
+  dueDate          DateTime
+  paymentStatus    PaymentStatus @default(PENDING)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  order            Order    @relation(fields: [orderId], references: [id])
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
+model OrderItem {
+  id             Int            @id @default(autoincrement())
+  orderId        Int
+  productId      Int
+  variantId      Int?  
+  quantity       Int
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  order          Order           @relation(fields: [orderId], references: [id])
+  product        Product         @relation(fields: [productId], references: [id])
+}
+
+enum PaymentTerm {
+  COD
+  CREDIT
+  PARTIAL
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  DISPATCHED
+  DELIVERED
+  CANCELED
+}
+
+model ProductInventory {
+  id             Int           @default(autoincrement())
+  productId      Int           
+  productName    String
+  quantity       Int
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+
+  reserve1       String         @default("USE ME LATER")
+  reserve2       String         @default("USE ME LATER")
+  reserve3       String         @default("USE ME LATER")
+
+  @@id([productId, createdAt])
+}
+
+model DistributorOrder {
+  id             Int            @default(autoincrement())
+
+  distributorId  Int
+  distributorName String
+
+  productId      Int          
+  productName    String
+
+  quantity       Int
+
+  dispatchDate   DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  @@id([distributorId, dispatchDate])
+}

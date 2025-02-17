@@ -836,6 +836,35 @@ export const getDistributorOrderQuantity = async (req: Request, res: Response) =
 };
 
 
+export const getallexports = async (req: Request, res: Response) => {
+  try {
+    // Fetch all records from ProductInventory
+    const productInventory = await prisma.productInventory.findMany();
+
+    // Fetch all records from DistributorOrder
+    const distributorOrders = await prisma.distributorOrder.findMany();
+    res.status(200).json({
+      success: true,
+      data: {
+        productInventory,
+        distributorOrders,
+      },
+    });
+    return;
+
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error instanceof Error ? error.message : error,
+    });
+    return;
+  }
+}
+
+
+
 
 
 

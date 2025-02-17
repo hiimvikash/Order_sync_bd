@@ -10,6 +10,7 @@ import {
   editDistributor,
   editProduct,
   getAllDistributors,
+  getallexports,
   getAllOrders,
   getAllProducts,
   getAllSalesperson,
@@ -82,5 +83,6 @@ adminRoute.post(
 );
 
 adminRoute.post("/distributor-order", verifyRole(['ADMIN']), placeOrderforDistributor);
+adminRoute.get("/getallexports", verifyRole(['ADMIN']), getallexports);
 
 export default adminRoute;

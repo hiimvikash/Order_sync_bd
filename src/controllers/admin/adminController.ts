@@ -686,7 +686,7 @@ export const createProductInventory = async (
 ) => {
   try {
     console.log("first")
-    const { productId, productName, quantity } = req.body;
+    const { productId, productName, quantity, unitPrice } = req.body;
     console.log(req.body);
 
     // Validate required fields
@@ -701,6 +701,7 @@ export const createProductInventory = async (
       data: {
         productId,
         productName,
+        unitPrice : Number(unitPrice),
         quantity : Number(quantity),
       },
     });
@@ -712,6 +713,36 @@ export const createProductInventory = async (
      return;
   }
 };
+
+export const getLastUnitPrice = async (req: Request, res: Response) => {
+  try {
+    const { productId } = req.params;
+
+    const lastUnitPrice = await lastUnitPricey(Number(productId));
+
+    if (!lastUnitPrice) {
+      res.status(404).json({ error: "No unit price found for the product" });
+      return;
+    }
+    console.log(lastUnitPrice)
+    res.status(200).json(lastUnitPrice);
+  } catch (error) {
+    console.error("Error fetching unit price:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+const lastUnitPricey = async (productId : Number)=>{
+  const lastUnitPrice = await prisma.productInventory.findFirst({
+    where: { productId: Number(productId) },
+    orderBy: { createdAt: "desc" },
+    select: { unitPrice: true },
+  });
+
+  if (!lastUnitPrice) {
+    return null;
+  }
+  return lastUnitPrice;
+}
 
 
 
@@ -824,9 +855,15 @@ export const getDistributorOrderQuantity = async (req: Request, res: Response) =
     });
 
     const finalQuantity = totalQuantity._sum.quantity ?? 0;
+    const lastUnitPrice = await lastUnitPricey(Number(productId));
+
+    let finalAmount = null;
+    if(lastUnitPrice){
+      finalAmount = finalQuantity * lastUnitPrice.unitPrice;
+    }
 
     // Send response
-     res.status(200).json(finalQuantity);
+     res.status(200).json({finalQuantity, finalAmount});
      return;
   } catch (error) {
     console.error("Error fetching order quantity:", error);
@@ -862,6 +899,80 @@ export const getallexports = async (req: Request, res: Response) => {
     return;
   }
 }
+
+
+export const getTotalAmountForDistributor = async (req: Request, res: Response) => { // Calculate total amount for a distributor IRRESPECTIVE of the product
+  try {
+    const { distributorId, productId, startDate, endDate } = req.body;
+
+    // Validate input
+    if (!distributorId || !startDate || !endDate) {
+       res.status(400).json({ error: "All fields are required" });
+       return;
+    }
+
+    // Convert startDate and endDate to Date objects
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Normalize startDate to the start of the day (00:00:00)
+    start.setUTCHours(0, 0, 0, 0);
+
+    // Normalize endDate to the end of the day (23:59:59)
+    end.setUTCHours(23, 59, 59, 999);
+
+    // Ensure valid date range
+    if (start > end) {
+       res.status(400).json({ error: "Invalid date range" });
+       return;
+    }
+
+    // Fetch all distributor orders
+    const orders = await prisma.distributorOrder.findMany({
+      where: { 
+        distributorId: Number(distributorId),
+        dispatchDate: {
+          gte: start, // From start of selected date
+          lte: end,   // Until end of selected date
+        }, 
+      },
+      select: {
+        productId: true,
+        quantity: true,
+      },
+    });
+
+    if (orders.length === 0) {
+      res.status(404).json({ error: "No orders found for this distributor" });
+      return;
+    }
+
+    let totalAmount = 0;
+    let totalQuantity = 0;
+
+    // Loop through orders and calculate total amount
+    for (const order of orders) {
+      totalQuantity += order.quantity;
+      const product = await prisma.productInventory.findFirst({
+        where: { productId: order.productId },
+        orderBy: { createdAt: "desc" }, // Get latest unitPrice
+        select: { unitPrice: true },
+      });
+
+      if (product) {
+        totalAmount += order.quantity * product.unitPrice;
+      }
+    }
+
+    res.status(200).json({ distributorId, finalAmount:totalAmount, finalQuantity: totalQuantity });
+    return;
+  } catch (error) {
+    console.error("Error calculating total amount:", error);
+    res.status(500).json({ error: "Internal server error" });
+    return;
+  }
+};
+
 
 
 

@@ -138,6 +138,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
   try {
     // Convert deliveryDate string to Date object
     const deliveryDateObj = new Date(deliveryDate);
+    console.log("ITEMS", items);
 
     // Separate productIds and variantIds for query
     const productIds: number[] = items.map(item => item.productId);
@@ -145,8 +146,12 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       .map(item => item.variantId)
       .filter((id): id is number => id !== undefined); // Filter out undefined variantIds
 
+    console.log("PV", productIds, variantIds);
+
+    
+
     // Fetch product and variant prices based on item productIds and variantIds
-    const productsWithVariants = await prisma.product.findMany({
+    const productData = await prisma.product.findMany({
       where: {
         id: { in: productIds },
       },
@@ -164,24 +169,30 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
         },
       },
     });
+    console.log("PD", JSON.stringify(productData));
 
+
+  // Create separate maps for product and variant prices
+  const productPriceMap = new Map<number, number>();
+  const variantPriceMap = new Map<number, number>();
     // Map product and variant prices for easier lookup
-    const productVariantPrices = new Map<number, number>();
-    productsWithVariants.forEach(product => {
-      if (product.variants.length > 0) {
-        product.variants.forEach(variant => {
-          productVariantPrices.set(variant.id, variant.price);
-        });
-      } else {
-        productVariantPrices.set(product.id, product.retailerPrice);
-      }
+    productData.forEach((product) => {
+      productPriceMap.set(product.id, product.retailerPrice); // Store product price
+  
+      product.variants.forEach((variant: any) => {
+        variantPriceMap.set(variant.id, variant.price); // Store variant price separately
+      });
     });
 
-    // Calculate total amount based on item quantity and price
-    const totalAmount = items.reduce((acc, item) => {
-      const price = productVariantPrices.get(item.variantId || item.productId) || 0; // Fallback to 0 if no price is found
-      return acc + (price * item.quantity);
-    }, 0);
+    console.log("PP", "VP", productPriceMap, variantPriceMap);
+
+    let totalAmount = 0;
+
+  items.forEach((item) => {
+    let price = variantPriceMap.get(item.variantId ?? 0) || productPriceMap.get(item.productId) || 0;
+    totalAmount += price * item.quantity;
+  });
+    console.log("totalAmount", totalAmount);
 
     // Create the order with associated items
     const newOrder = await prisma.order.create({

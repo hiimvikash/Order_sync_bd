@@ -16,8 +16,10 @@ import {
   getAllSalesperson,
   getCategory,
   getDistributorOrderQuantity,
+  getLastUnitPrice,
   getProductInventoryQuantity,
   getShops,
+  getTotalAmountForDistributor,
   placeOrderforDistributor,
   signup,
 
@@ -71,6 +73,13 @@ adminRoute.post(
 );
 
 adminRoute.get(
+  "/getLastUnitPrice/:productId",
+  verifyRole(["ADMIN"]),
+  getLastUnitPrice
+);
+
+
+adminRoute.get(
   "/get-inventory/:productId",
   verifyRole(["ADMIN"]),
   getProductInventoryQuantity
@@ -80,6 +89,11 @@ adminRoute.post(
   "/distributorOrderCount",
   verifyRole(["ADMIN"]),
   getDistributorOrderQuantity
+);
+adminRoute.post(
+  "/distributortotalamount",
+  verifyRole(["ADMIN"]),
+  getTotalAmountForDistributor
 );
 
 adminRoute.post("/distributor-order", verifyRole(['ADMIN']), placeOrderforDistributor);

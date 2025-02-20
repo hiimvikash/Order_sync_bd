@@ -175,6 +175,7 @@ model ProductInventory {
   id             Int           @default(autoincrement())
   productId      Int           
   productName    String
+  unitPrice      Int
   quantity       Int
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt

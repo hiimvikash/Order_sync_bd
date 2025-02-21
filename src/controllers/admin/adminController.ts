@@ -633,7 +633,7 @@ export const editDistributor = async (
       data: {
         name: name || distributor.name, // If a field is not provided, retain the original value
         email: email || distributor.email,
-        phoneNumber: phoneNumber || distributor.phoneNumber,
+        phoneNumber: String(phoneNumber) || distributor.phoneNumber,
         gstNumber: gstNumber || distributor.gstNumber,
         pan: pan || distributor.pan,
         address: address || distributor.address,
@@ -647,6 +647,47 @@ export const editDistributor = async (
     });
   } catch (error) {
     console.error("Error updating distributor:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+export const editSalesperson = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { id } = req.params; // Get the ID from the request parameters
+  const { name, email, phoneNumber, pan, address } = req.body; // Get the updated data from the request body
+
+  try {
+    // Find the distributor by ID
+    const salesperson = await prisma.salesperson.findUnique({
+      where: { id: Number(id) }, // Convert id to number since it's defined as Int in your schema
+    });
+
+    if (!salesperson) {
+      // If distributor is not found, return a 404 error
+      res.status(404).json({ message: "Salesperson not found" });
+      return;
+    }
+
+    // Update the distributor with the provided data
+    const updatedSalesperson = await prisma.salesperson.update({
+      where: { id: Number(id) },
+      data: {
+        name: name || salesperson.name, // If a field is not provided, retain the original value
+        email: email || salesperson.email,
+        phoneNumber: String(phoneNumber) || salesperson.phoneNumber,
+        pan: pan || salesperson.pan,
+        address: address || salesperson.address,
+      },
+    });
+
+    // Return the updated distributor
+    res.status(200).json({
+      message: "Salesperson updated successfully",
+      distributor: updatedSalesperson,
+    });
+  } catch (error) {
+    console.error("Error updating Salesperson:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };

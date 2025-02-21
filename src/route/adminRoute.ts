@@ -9,6 +9,7 @@ import {
   deleteProduct,
   editDistributor,
   editProduct,
+  editSalesperson,
   getAllDistributors,
   getallexports,
   getAllOrders,
@@ -63,6 +64,7 @@ adminRoute.get("/get-distributors", verifyRole(["ADMIN"]), getAllDistributors);
 adminRoute.get("/get-salesperson", verifyRole(["ADMIN"]), getAllSalesperson);
 adminRoute.delete("/distributor/:id", verifyRole(["ADMIN"]), deleteDistributor);
 adminRoute.put("/distributor/:id", verifyRole(["ADMIN"]), editDistributor);
+adminRoute.put("/salesperson/:id", verifyRole(["ADMIN"]), editSalesperson);
 adminRoute.get("/get-orders", verifyRole(["ADMIN"]), getAllOrders);
 adminRoute.get("/get-shops", verifyRole(["ADMIN"]), getShops);
 

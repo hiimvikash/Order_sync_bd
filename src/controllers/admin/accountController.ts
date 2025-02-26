@@ -5,6 +5,8 @@ import {prisma} from "../../config/db"
 import { distributorSignupSchema } from '../../schema/admin/distributorSchema';
 import { salespersonSignupSchema } from '../../schema/admin/salespersonAuthSchema';
 
+import { sendMail } from '../../mailer';
+
 const saltRounds = 10;
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
@@ -50,8 +52,15 @@ export const createSalesperson = async (req: Request, res: Response): Promise<vo
         employeeId,
         pan,
         address,
-      },
+      }, 
     });
+    if(email){
+      await sendMail(
+        [email],
+        "Welcome to Our Sales Team!",
+        `Dear ${name},\n\nYour account has been created as a Salesperson.\nLogin: ${email}\nPassword: ${password}\nEmployee ID : ${employeeId}\n\nBest Regards,\nNeedibay's Team`
+      );
+    }
 
     res.status(201).json({
       message: 'Salesperson created successfully',
@@ -126,3 +135,12 @@ export const createDistributor = async (req: Request, res: Response): Promise<vo
     return
   }
 };
+
+
+
+
+
+
+
+
+

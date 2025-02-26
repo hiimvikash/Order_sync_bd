@@ -19,8 +19,13 @@ app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/salesperson", salespersonRoute);
 app.use("/api/v1/distributor", distributorRoute);
+
+app.get('/healthy', (req: Request, res: Response) => {
+    res.status(200).json({ message: 'Server is healthy' });
+});
+
 const keepAlive = () => {
-    https.get('https://ordersyncapi.onrender.com/api/v1', (res) => {
+    https.get('https://ordersyncapi.onrender.com/healthy', (res) => {
         console.log(`Keep-alive pinged: ${res.statusCode}`);
     }).on('error', (err) => {
         console.error(`Error pinging: ${err.message}`);

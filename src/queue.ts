@@ -25,16 +25,28 @@ connection.ping()
 export const emailQueue = new Queue("emailQueue", {connection});
 
 
-new Worker(
-    "emailQueue",
-    async (job) => {
+const worker = new Worker(
+  "emailQueue",
+  async (job) => {
+    try {
       const orderId = job.data.orderId;
-      console.log(`Sending mail for OrderId : ${orderId}`);
+      console.log(`Sending mail for OrderId: ${orderId}`);
+
       await sendOrderMail(orderId);
-      console.log(`Mail sent for OrderId : ${orderId}`);
-    },
-    { connection }
-  );
+
+      console.log(`✅ Mail sent for OrderId: ${orderId}`);
+    } catch (error) {
+      console.error(`❌ Error processing job ${job.id} for OrderId ${job.data.orderId}:`, error);
+      throw error;
+    }
+  },
+  { connection}
+);
+
+worker.on("failed", (job, err) => {
+  console.error(`❌ Job ${job?.id} failed after retries:`, err);
+});
+
 
 
 
@@ -87,6 +99,7 @@ new Worker(
       await sendMail([orderDetails.salesperson.email, orderDetails.distributor.email, orderDetails.shopkeeper.email ?? ""].filter(email => email), 'Order Confirmation', mailhtml);
       
     } catch (error) {
+      console.log(error)
       
     }
   }

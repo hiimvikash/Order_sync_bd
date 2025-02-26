@@ -230,7 +230,13 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
     });
 
     // MAILLING FUNCTIONALITY
-    await emailQueue.add("emailQueue",{orderId : newOrder.id})
+    await emailQueue.add("emailQueue",{orderId : newOrder.id}, {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 3000
+      }
+    })
 
 
     // Return success response with order details

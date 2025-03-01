@@ -6,6 +6,7 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import * as stream from 'stream';
+import { emailQueue, getOrderById } from '../../queue';
 
 
 const upload = multer({ storage: multer.memoryStorage() }).single('file');
@@ -122,6 +123,8 @@ export const getDistributorOrders = async (req: Request, res: Response): Promise
     res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
+let previousOrder:any;
 export const updateOrderDetails = async (req: Request, res: Response): Promise<void> => {
   const token = req.headers.authorization?.split(' ')[1]; // Assuming Bearer token
 
@@ -140,9 +143,10 @@ export const updateOrderDetails = async (req: Request, res: Response): Promise<v
     }
 
     const { orderId } = req.params;
-    const { items, status } = req.body; // Get items and status from request body
+    const { items, status, deliveryDate } = req.body; // Get items and status from request body
 
     const order = await prisma.order.findUnique({ where: { id: parseInt(orderId) } });
+    previousOrder = await getOrderById(Number(orderId));
 
     if (!order) {
       res.status(404).json({ message: 'Order not found' });
@@ -162,6 +166,16 @@ export const updateOrderDetails = async (req: Request, res: Response): Promise<v
         where: { id: parseInt(orderId) },
         data: { status }, // Update the status
       });
+    }
+    if(deliveryDate){
+      await prisma.order.update(
+        {
+          where : {id : parseInt(orderId)},
+          data : {
+            deliveryDate : new Date(deliveryDate)
+          }
+        }
+      )
     }
 
     // If items are provided, update the order item quantities
@@ -225,13 +239,22 @@ export const updateOrderDetails = async (req: Request, res: Response): Promise<v
           totalAmount += (product.retailerPrice * quantity) - (orderItem.quantity * product.retailerPrice); // Adjust total amount
         }
       }
+      // Update the total amount for the order if it has changed
+      await prisma.order.update({
+        where: { id: parseInt(orderId) },
+        data: { totalAmount }, // Update the total amount
+      });
+      
+      // Clean any old pending jobs before adding a new one
+      await emailQueue.add("emailQueue",{orderId : parseInt(orderId), isOrderUpdateMail : true}, {
+        attempts: 1,
+        backoff: {
+          type: 'exponential',
+          delay: 3000
+        }
+      })
     }
 
-    // Update the total amount for the order if it has changed
-    await prisma.order.update({
-      where: { id: parseInt(orderId) },
-      data: { totalAmount }, // Update the total amount
-    });
 
     res.status(200).json({ message: 'Order updated successfully', totalAmount });
   } catch (error) {
@@ -239,6 +262,8 @@ export const updateOrderDetails = async (req: Request, res: Response): Promise<v
     res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
+
 // Controller to update partial payment by order ID
 export const updatePartialPayment = async (req: Request, res: Response): Promise<void> => {
   const token = req.headers.authorization?.split(' ')[1]; // Assuming Bearer token
@@ -402,3 +427,6 @@ export const updateConfirmationPhotoUrl = async (req: Request, res: Response): P
     }
   });
 };
+
+
+export {previousOrder};

@@ -244,9 +244,6 @@ function generateOrderCreationHTML(order:any) {
       <div class="container">
         <h2>Order Acknowledgment</h2>
         <p><strong>Order ID:</strong> ${order.orderId}</p>
-        <p><strong>Shopkeeper:</strong> <span class="highlight">${order.shopkeeper.name}</span> (${order.shopkeeper.email})</p>
-        <p><strong>Salesperson:</strong> ${order.salesperson.name} (${order.salesperson.email})</p>
-        <p><strong>Distributor:</strong> ${order.distributor.name} (${order.distributor.email})</p>
         <p><strong>Expected Delivery Date:</strong> ${new Date(order.deliveryDate).toDateString()}</p>
         
         <table>
@@ -353,9 +350,6 @@ function generateOrderUpdateHTML(order: any) {
         </div>
 
         <p><strong>Order ID:</strong> ${order.orderId}</p>
-        <p><strong>Shopkeeper:</strong> <span class="highlight">${order.shopkeeper.name}</span> (${order.shopkeeper.email})</p>
-        <p><strong>Salesperson:</strong> ${order.salesperson.name} (${order.salesperson.email})</p>
-        <p><strong>Distributor:</strong> ${order.distributor.name} (${order.distributor.email})</p>
         
         <table>
           <tr>
